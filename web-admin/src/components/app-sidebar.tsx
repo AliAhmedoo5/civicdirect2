@@ -1,6 +1,8 @@
 "use client"
 
-import { Hexagon, Inbox, LayoutDashboard, Settings, UserCheck } from "lucide-react"
+import { Hexagon, Inbox, LayoutDashboard, Settings, UserCheck, WalletCards } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import {
   Sidebar,
@@ -17,32 +19,39 @@ import {
 const items = [
   {
     title: "Dashboard",
-    url: "#",
+    url: "/dashboard",
     icon: LayoutDashboard,
   },
   {
     title: "Verification Inbox",
-    url: "#",
+    url: "/",
     icon: Inbox,
   },
   {
+    title: "Escrow Pipeline",
+    url: "/escrow",
+    icon: WalletCards,
+  },
+  {
     title: "NGOs",
-    url: "#",
+    url: "/ngos",
     icon: Hexagon,
   },
   {
     title: "Donors",
-    url: "#",
+    url: "/donors",
     icon: UserCheck,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -52,11 +61,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

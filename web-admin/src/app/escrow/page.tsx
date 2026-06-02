@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   Table,
@@ -13,21 +12,17 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Inbox, Loader2 } from "lucide-react"
+import { Loader2, WalletCards } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { VerificationDrawer } from "@/components/verification-drawer"
-import { Database } from "../../../shared/types/database.types"
+import { Database } from "../../../../shared/types/database.types"
 
 type RequestRow = Database['public']['Tables']['requests']['Row'] & {
   ngos: { name: string } | null;
 }
 
-export default function InboxPage() {
-  const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
+export default function EscrowPage() {
   const { data: requests, isLoading, error, refetch } = useQuery({
-    queryKey: ['pending-requests'],
+    queryKey: ['escrow-requests'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('requests')
@@ -35,7 +30,7 @@ export default function InboxPage() {
           *,
           ngos ( name )
         `)
-        .eq('status', 'pending')
+        .eq('status', 'fully_funded')
         .order('created_at', { ascending: false })
       
       if (error) throw error
@@ -43,32 +38,27 @@ export default function InboxPage() {
     }
   })
 
-  const openDrawer = (request: RequestRow) => {
-    setSelectedRequest(request)
-    setIsDrawerOpen(true)
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Verification Inbox</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Escrow Pipeline</h1>
           <p className="text-muted-foreground mt-2">
-            Review and approve NGO registration and campaign requests.
+            Campaigns that are fully funded and awaiting manual review for final disbursal.
           </p>
         </div>
         <Button 
           onClick={() => refetch()} 
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          Refresh Queue
+          Refresh Pipeline
         </Button>
       </div>
 
       <div className="rounded-md border border-border/50 bg-card">
         <Table>
           {requests?.length === 0 && !isLoading && (
-            <TableCaption className="pb-4">No pending requests at the moment.</TableCaption>
+            <TableCaption className="pb-4">No fully funded campaigns waiting for disbursal.</TableCaption>
           )}
           <TableHeader>
             <TableRow className="border-border/50 hover:bg-transparent">
@@ -86,22 +76,22 @@ export default function InboxPage() {
                 <TableCell colSpan={6} className="h-48 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <p>Loading requests...</p>
+                    <p>Loading escrow pipeline...</p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-48 text-center text-destructive">
-                  Error loading requests: {(error as Error).message}
+                  Error loading pipeline: {(error as Error).message}
                 </TableCell>
               </TableRow>
             ) : requests?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Inbox className="h-8 w-8 text-muted-foreground/50" />
-                    <p>Queue is empty.</p>
+                    <WalletCards className="h-8 w-8 text-muted-foreground/50" />
+                    <p>No campaigns ready for disbursal.</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -117,18 +107,17 @@ export default function InboxPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {request.status}
+                    <Badge variant="outline" className="capitalize text-green-500 border-green-500/20 bg-green-500/10">
+                      {request.status.replace('_', ' ')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button 
-                      variant="ghost" 
+                      variant="default" 
                       size="sm" 
-                      onClick={() => openDrawer(request)}
-                      className="text-primary hover:text-primary hover:bg-primary/10"
+                      onClick={() => alert('Disbursal workflow not implemented yet.')}
                     >
-                      Review
+                      Process Disbursal
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -137,12 +126,6 @@ export default function InboxPage() {
           </TableBody>
         </Table>
       </div>
-
-      <VerificationDrawer 
-        request={selectedRequest} 
-        isOpen={isDrawerOpen} 
-        onOpenChange={setIsDrawerOpen} 
-      />
     </div>
   )
 }
