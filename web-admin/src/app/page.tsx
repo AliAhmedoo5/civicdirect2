@@ -1,65 +1,147 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Inbox, Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import { VerificationDrawer } from "@/components/verification-drawer"
+import { Database } from "../../../shared/types/database.types"
+
+type RequestRow = Database['public']['Tables']['requests']['Row'] & {
+  ngos: { name: string } | null;
+}
+
+export default function InboxPage() {
+  const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+  const { data: requests, isLoading, error, refetch } = useQuery({
+    queryKey: ['pending-requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('requests')
+        .select(`
+          *,
+          ngos ( name )
+        `)
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      return data as RequestRow[]
+    }
+  })
+
+  const openDrawer = (request: RequestRow) => {
+    setSelectedRequest(request)
+    setIsDrawerOpen(true)
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Verification Inbox</h1>
+          <p className="text-muted-foreground mt-2">
+            Review and approve NGO registration and campaign requests.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <Button 
+          onClick={() => refetch()} 
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          Refresh Queue
+        </Button>
+      </div>
+
+      <div className="rounded-md border border-border/50 bg-card">
+        <Table>
+          {requests?.length === 0 && !isLoading && (
+            <TableCaption className="pb-4">No pending requests at the moment.</TableCaption>
+          )}
+          <TableHeader>
+            <TableRow className="border-border/50 hover:bg-transparent">
+              <TableHead className="w-[100px]">Type</TableHead>
+              <TableHead>Organization</TableHead>
+              <TableHead>Target Amount</TableHead>
+              <TableHead>Urgency</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-48 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p>Loading requests...</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-48 text-center text-destructive">
+                  Error loading requests: {(error as Error).message}
+                </TableCell>
+              </TableRow>
+            ) : requests?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Inbox className="h-8 w-8 text-muted-foreground/50" />
+                    <p>Queue is empty.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              requests?.map((request) => (
+                <TableRow key={request.id} className="border-border/50 hover:bg-muted/50 transition-colors">
+                  <TableCell className="font-medium capitalize">{request.request_type}</TableCell>
+                  <TableCell>{request.ngos?.name || 'Unknown'}</TableCell>
+                  <TableCell>Rs. {request.target_amount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge variant={request.urgency_level === 'critical' ? 'destructive' : 'default'} className="capitalize">
+                      {request.urgency_level}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {request.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => openDrawer(request)}
+                      className="text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      Review
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <VerificationDrawer 
+        request={selectedRequest} 
+        isOpen={isDrawerOpen} 
+        onOpenChange={setIsDrawerOpen} 
+      />
     </div>
-  );
+  )
 }
