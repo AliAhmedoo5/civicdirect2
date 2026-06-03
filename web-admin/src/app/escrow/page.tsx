@@ -12,15 +12,24 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, WalletCards } from "lucide-react"
+import { Loader2, WalletCards, Eye } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Database } from "../../../../shared/types/database.types"
+import { useState } from "react"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 type RequestRow = Database['public']['Tables']['requests']['Row'] & {
   ngos: { name: string } | null;
 }
 
 export default function EscrowPage() {
+  const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null);
   const { data: requests, isLoading, error, refetch } = useQuery({
     queryKey: ['escrow-requests'],
     queryFn: async () => {
@@ -112,13 +121,23 @@ export default function EscrowPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      onClick={() => alert('Disbursal workflow not implemented yet.')}
-                    >
-                      Process Disbursal
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectedRequest(request)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Details
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={() => alert('Disbursal workflow not implemented yet.')}
+                      >
+                        Process Disbursal
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -126,6 +145,60 @@ export default function EscrowPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Sheet open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
+        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto border-border">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl">{selectedRequest?.details?.title || 'Campaign Details'}</SheetTitle>
+            <SheetDescription>
+              Organized by {selectedRequest?.ngos?.name}
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedRequest && (
+            <div className="flex flex-col gap-6">
+              {/* Image */}
+              {selectedRequest.proof_image_url ? (
+                <div className="relative h-64 w-full rounded-xl overflow-hidden border border-border">
+                  <img src={selectedRequest.proof_image_url} alt="Proof" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="h-64 w-full bg-muted rounded-xl flex items-center justify-center border border-border border-dashed">
+                  <span className="text-muted-foreground">No proof image provided</span>
+                </div>
+              )}
+
+              {/* Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted/50 p-4 rounded-xl border border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Target Amount</p>
+                  <p className="text-xl font-bold">Rs. {selectedRequest.target_amount.toLocaleString()}</p>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-xl border border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Raised Amount</p>
+                  <p className="text-xl font-bold text-green-500">Rs. {selectedRequest.raised_amount?.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold mb-2">Description</h4>
+                <p className="text-muted-foreground leading-relaxed">
+                  {selectedRequest.details?.description || 'No description provided.'}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Badge variant={selectedRequest.urgency_level === 'critical' ? 'destructive' : 'default'} className="capitalize">
+                  {selectedRequest.urgency_level} Urgency
+                </Badge>
+                <Badge variant="outline" className="capitalize">
+                  {selectedRequest.request_type}
+                </Badge>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

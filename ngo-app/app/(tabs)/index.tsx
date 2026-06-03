@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshCon
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../src/lib/supabase';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import CampaignCard from '../../src/components/CampaignCard';
 
 // Remove dummy data
@@ -11,6 +11,7 @@ import CampaignCard from '../../src/components/CampaignCard';
 export default function DashboardScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
+  const router = useRouter();
 
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,8 +28,13 @@ export default function DashboardScreen() {
         .single();
 
       if (error) {
-        console.error('Error fetching NGO status:', error);
-        setIsVerified(false);
+        if (error.code === 'PGRST116') {
+          // No NGO record found, redirect to onboarding
+          router.replace('/(auth)/onboarding');
+        } else {
+          console.error('Error fetching NGO status:', error);
+          setIsVerified(false);
+        }
       } else {
         setIsVerified(data?.is_verified || false);
         if (data?.is_verified) {
@@ -45,6 +51,7 @@ export default function DashboardScreen() {
       .from('requests')
       .select('*')
       .eq('ngo_id', ngoId)
+      .in('status', ['pending', 'active', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(3);
     
@@ -53,6 +60,22 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     checkVerification().finally(() => setLoading(false));
+
+    const channel = supabase
+      .channel(`ngo-requests-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'requests' },
+        (payload) => {
+          // If NGO verified, refetch to keep dashboard fresh
+          if (user?.id) checkVerification();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const onRefresh = useCallback(async () => {

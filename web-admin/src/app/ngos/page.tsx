@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, Clock } from "lucide-react"
+import { CheckCircle2, Clock, FileDown } from "lucide-react"
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -25,6 +25,7 @@ type NGO = {
   registration_number: string
   city_zone: string
   is_verified: boolean
+  verification_document_url: string | null
   created_at: string
 }
 
@@ -91,6 +92,7 @@ export default function NGOsPage() {
               <TableHead>NGO Name</TableHead>
               <TableHead>Reg. Number</TableHead>
               <TableHead>City / Zone</TableHead>
+              <TableHead>Document</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -98,13 +100,13 @@ export default function NGOsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   Loading NGOs...
                 </TableCell>
               </TableRow>
             ) : ngos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No NGOs found.
                 </TableCell>
               </TableRow>
@@ -114,6 +116,18 @@ export default function NGOsPage() {
                   <TableCell className="font-medium">{ngo.name}</TableCell>
                   <TableCell>{ngo.registration_number || "N/A"}</TableCell>
                   <TableCell>{ngo.city_zone || "N/A"}</TableCell>
+                  <TableCell>
+                    {ngo.verification_document_url ? (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={ngo.verification_document_url} target="_blank" rel="noopener noreferrer">
+                          <FileDown className="h-4 w-4 mr-2" />
+                          View PDF
+                        </a>
+                      </Button>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">No doc</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {ngo.is_verified ? (
                       <Badge variant="secondary" className="bg-green-500/10 text-green-500 hover:bg-green-500/20">

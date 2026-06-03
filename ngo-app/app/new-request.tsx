@@ -16,6 +16,8 @@ export default function NewRequestModal() {
 
   // Form Data
   const [requestType, setRequestType] = useState('Medical');
+  const [urgencyLevel, setUrgencyLevel] = useState('normal');
+  const [durationDays, setDurationDays] = useState('30');
   const [targetAmount, setTargetAmount] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -99,6 +101,8 @@ export default function NewRequestModal() {
         ngo_id: ngoId,
         request_type: requestType.toLowerCase(),
         target_amount: Number(targetAmount),
+        urgency_level: urgencyLevel,
+        deadline: new Date(Date.now() + Number(durationDays) * 24 * 60 * 60 * 1000).toISOString(),
         proof_image_url: proofUrl,
         details: { title, description },
         status: 'pending' // Admin must review
@@ -157,6 +161,35 @@ export default function NewRequestModal() {
                   keyboardType="numeric"
                   onChangeText={setTargetAmount}
                   className="bg-[#111827] text-white border border-gray-800 rounded-xl px-4 py-4 text-2xl font-bold focus:border-blue-500"
+                />
+              </View>
+
+              <View className="mt-6 flex-row gap-4">
+                <View className="flex-1">
+                  <Text className="text-gray-300 font-medium mb-2">Urgency</Text>
+                  <View className="flex-row gap-2">
+                    {['normal', 'high', 'critical'].map(lvl => (
+                      <TouchableOpacity 
+                        key={lvl}
+                        onPress={() => setUrgencyLevel(lvl)}
+                        className={`flex-1 py-3 rounded-lg border items-center ${urgencyLevel === lvl ? (lvl === 'critical' ? 'bg-red-600 border-red-500' : lvl === 'high' ? 'bg-yellow-600 border-yellow-500' : 'bg-blue-600 border-blue-500') : 'bg-[#111827] border-gray-800'}`}
+                      >
+                        <Text className={urgencyLevel === lvl ? 'text-white font-bold capitalize' : 'text-gray-400 font-medium capitalize'}>{lvl}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <View className="mt-6">
+                <Text className="text-gray-300 font-medium mb-2">Campaign Duration (Days)</Text>
+                <TextInput
+                  value={durationDays}
+                  placeholder="e.g. 30"
+                  placeholderTextColor="#4B5563"
+                  keyboardType="numeric"
+                  onChangeText={setDurationDays}
+                  className="bg-[#111827] text-white border border-gray-800 rounded-xl px-4 py-4 text-lg focus:border-blue-500"
                 />
               </View>
 

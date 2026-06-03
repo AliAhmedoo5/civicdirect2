@@ -26,7 +26,7 @@ export default function CampaignCard({ request: req, ngoName = 'My NGO' }: Campa
       if (count !== null) setBackersCount(count);
     };
     fetchBackers();
-  }, [req.id]);
+  }, [req.id, req.raised_amount]);
 
   // Safe number formatter to replace toLocaleString() which crashes on some Hermes engines
   const formatMoney = (amount: number) => {

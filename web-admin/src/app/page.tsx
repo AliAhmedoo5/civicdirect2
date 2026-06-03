@@ -25,18 +25,24 @@ type RequestRow = Database['public']['Tables']['requests']['Row'] & {
 export default function InboxPage() {
   const [selectedRequest, setSelectedRequest] = useState<RequestRow | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [filterUrgency, setFilterUrgency] = useState<string>('all')
 
   const { data: requests, isLoading, error, refetch } = useQuery({
-    queryKey: ['pending-requests'],
+    queryKey: ['pending-requests', filterUrgency],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('requests')
         .select(`
           *,
           ngos ( name )
         `)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false })
+        
+      if (filterUrgency !== 'all') {
+        query = query.eq('urgency_level', filterUrgency)
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false })
       
       if (error) throw error
       return data as RequestRow[]
@@ -57,12 +63,25 @@ export default function InboxPage() {
             Review and approve NGO registration and campaign requests.
           </p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          Refresh Queue
-        </Button>
+        <div className="flex gap-4 items-center">
+          <select 
+            value={filterUrgency} 
+            onChange={(e) => setFilterUrgency(e.target.value)}
+            className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option value="all">All Urgencies</option>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+
+          <Button 
+            onClick={() => refetch()} 
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Refresh Queue
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border border-border/50 bg-card">
