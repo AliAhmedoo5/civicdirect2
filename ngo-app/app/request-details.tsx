@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../src/lib/supabase';
@@ -139,7 +139,7 @@ export default function RequestDetailsScreen() {
 
           {/* Dynamic Payload Render */}
           <Text className="text-white font-bold text-xl mb-4 mt-4">Details</Text>
-          <View className="bg-[#111827] rounded-2xl p-5 border border-gray-800 shadow-xl">
+          <View className="bg-[#111827] rounded-2xl p-5 border border-gray-800 shadow-xl mb-24">
             {Object.keys(request.details || {}).length === 0 ? (
               <Text className="text-gray-500 italic">No additional details provided.</Text>
             ) : (
@@ -160,6 +160,18 @@ export default function RequestDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Floating Action Button for Editing (Only for pending or rejected) */}
+      {(request.status === 'pending' || request.status === 'rejected') && (
+        <View className="absolute bottom-8 left-6 right-6">
+          <Link href={`/edit-request?id=${request.id}`} asChild>
+            <TouchableOpacity className="bg-blue-600 rounded-xl py-4 items-center shadow-lg shadow-blue-500/30 flex-row justify-center active:bg-blue-700">
+              <Ionicons name="pencil" size={20} color="white" className="mr-2" />
+              <Text className="text-white font-bold text-lg ml-2">Edit Campaign</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

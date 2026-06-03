@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { supabase } from '../lib/supabase';
 
 interface CampaignCardProps {
   request: any;
@@ -13,6 +14,19 @@ export default function CampaignCard({ request: req, ngoName = 'My NGO' }: Campa
   const raisedAmount = Number(req.raised_amount) || 0;
   const progress = targetAmount > 0 ? (raisedAmount / targetAmount) * 100 : 0;
   const safeProgress = isNaN(progress) ? 0 : Math.min(progress, 100);
+  const [backersCount, setBackersCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchBackers = async () => {
+      const { count } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('request_id', req.id);
+      
+      if (count !== null) setBackersCount(count);
+    };
+    fetchBackers();
+  }, [req.id]);
 
   // Safe number formatter to replace toLocaleString() which crashes on some Hermes engines
   const formatMoney = (amount: number) => {
@@ -129,7 +143,7 @@ export default function CampaignCard({ request: req, ngoName = 'My NGO' }: Campa
           </Link>
           
           <View className="ml-5 items-center">
-            <Text className="text-white text-lg font-bold">0</Text>
+            <Text className="text-white text-lg font-bold">{backersCount}</Text>
             <Text className="text-gray-500 text-xs uppercase tracking-wider">Backers</Text>
           </View>
         </View>

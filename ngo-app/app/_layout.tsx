@@ -44,6 +44,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="new-request" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="edit-request" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="request-details" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         </Stack>
       </ClerkLoaded>
