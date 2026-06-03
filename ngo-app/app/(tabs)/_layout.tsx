@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useAuth } from '@clerk/clerk-expo';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -35,6 +36,18 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="my-requests"
+        options={{
+          title: 'Requests',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list-outline" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

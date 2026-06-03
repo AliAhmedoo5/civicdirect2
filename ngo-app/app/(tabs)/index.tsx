@@ -4,13 +4,9 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../src/lib/supabase';
 import { Link } from 'expo-router';
+import CampaignCard from '../../src/components/CampaignCard';
 
-// Dummy data for the shell
-const DUMMY_REQUESTS = [
-  { id: '1', type: 'Medical', amount: 5000, status: 'pending', date: '2023-10-27' },
-  { id: '2', type: 'Utility', amount: 1200, status: 'active', date: '2023-10-26' },
-  { id: '3', type: 'Education', amount: 15000, status: 'fully_funded', date: '2023-10-25' },
-];
+// Remove dummy data
 
 export default function DashboardScreen() {
   const { signOut } = useAuth();
@@ -19,13 +15,14 @@ export default function DashboardScreen() {
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
 
   const checkVerification = async () => {
     if (!user) return;
     try {
       const { data, error } = await supabase
         .from('ngos')
-        .select('is_verified')
+        .select('id, is_verified')
         .eq('clerk_user_id', user.id)
         .single();
 
@@ -34,10 +31,24 @@ export default function DashboardScreen() {
         setIsVerified(false);
       } else {
         setIsVerified(data?.is_verified || false);
+        if (data?.is_verified) {
+          fetchRecentRequests(data.id);
+        }
       }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const fetchRecentRequests = async (ngoId: string) => {
+    const { data, error } = await supabase
+      .from('requests')
+      .select('*')
+      .eq('ngo_id', ngoId)
+      .order('created_at', { ascending: false })
+      .limit(3);
+    
+    if (!error && data) setRequests(data);
   };
 
   useEffect(() => {
@@ -110,25 +121,27 @@ export default function DashboardScreen() {
 
             {/* Recent Requests Section */}
             <View className="mb-4">
-              <Text className="text-white text-xl font-bold mb-4 tracking-tight">Recent Requests</Text>
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-white text-xl font-bold tracking-tight">Recent Requests</Text>
+                <Link href="/my-requests" asChild>
+                  <TouchableOpacity>
+                    <Text className="text-blue-400 font-medium">View All</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
               
-              <View className="space-y-4">
-                {DUMMY_REQUESTS.map((req) => (
-                  <View 
-                    key={req.id} 
-                    className="bg-[#111827] border border-gray-800 p-4 rounded-2xl flex-row justify-between items-center mt-3"
-                  >
-                    <View>
-                      <Text className="text-white font-bold text-lg mb-1">{req.type}</Text>
-                      <Text className="text-gray-400">Rs. {req.amount.toLocaleString()}</Text>
-                    </View>
-                    <View className={`px-3 py-1 rounded-full border ${getStatusColor(req.status)}`}>
-                      <Text className={`text-xs font-bold capitalize ${getStatusColor(req.status).split(' ')[1]}`}>
-                        {req.status.replace('_', ' ')}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
+              <View style={{ paddingBottom: 40 }}>
+                {requests.filter(req => req.status !== 'rejected').length === 0 ? (
+                  <Text className="text-gray-500 text-center py-4">No requests found. Create one above!</Text>
+                ) : (
+                  requests.filter(req => req.status !== 'rejected').map((req) => (
+                    <CampaignCard 
+                      key={req.id} 
+                      request={req} 
+                      ngoName={user?.firstName || 'My NGO'} 
+                    />
+                  ))
+                )}
               </View>
             </View>
           </>

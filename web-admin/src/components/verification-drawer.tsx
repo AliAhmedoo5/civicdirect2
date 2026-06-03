@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+
 import {
   Sheet,
   SheetContent,
@@ -9,6 +11,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import { DynamicPayloadRenderer } from "./dynamic-payload-renderer"
 import { Database } from "../../../shared/types/database.types"
 import { supabase } from "@/lib/supabase"
@@ -26,6 +29,7 @@ interface VerificationDrawerProps {
 
 export function VerificationDrawer({ request, isOpen, onOpenChange }: VerificationDrawerProps) {
   const queryClient = useQueryClient()
+  const [rejectionReason, setRejectionReason] = useState("")
 
   const verifyMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -48,7 +52,7 @@ export function VerificationDrawer({ request, isOpen, onOpenChange }: Verificati
     mutationFn: async (id: string) => {
       const { data, error } = await supabase
         .from('requests')
-        .update({ status: 'rejected' })
+        .update({ status: 'rejected', rejection_reason: rejectionReason })
         .eq('id', id)
         .select()
       
@@ -57,6 +61,7 @@ export function VerificationDrawer({ request, isOpen, onOpenChange }: Verificati
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] })
+      setRejectionReason("")
       onOpenChange(false)
     }
   })
@@ -122,22 +127,35 @@ export function VerificationDrawer({ request, isOpen, onOpenChange }: Verificati
             )}
           </div>
 
-          <div className="flex gap-4 pt-4 border-t border-border/50">
-            <Button 
-              className="flex-1" 
-              variant="destructive"
-              onClick={() => rejectMutation.mutate(request.id)}
-              disabled={rejectMutation.isPending || verifyMutation.isPending || request.status !== 'pending'}
-            >
-              {rejectMutation.isPending ? 'Rejecting...' : 'Reject Request'}
-            </Button>
-            <Button 
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => verifyMutation.mutate(request.id)}
-              disabled={rejectMutation.isPending || verifyMutation.isPending || request.status !== 'pending'}
-            >
-              {verifyMutation.isPending ? 'Verifying...' : 'Verify & Publish'}
-            </Button>
+          <div className="flex gap-4 pt-4 border-t border-border/50 flex-col">
+            {request.status === 'pending' && (
+              <div className="space-y-2">
+                <Textarea 
+                  placeholder="Optional: Provide a reason for rejection..." 
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="resize-none bg-muted/50 border-border/50"
+                  rows={2}
+                />
+              </div>
+            )}
+            <div className="flex gap-4">
+              <Button 
+                className="flex-1" 
+                variant="destructive"
+                onClick={() => rejectMutation.mutate(request.id)}
+                disabled={rejectMutation.isPending || verifyMutation.isPending || request.status !== 'pending'}
+              >
+                {rejectMutation.isPending ? 'Rejecting...' : 'Reject Request'}
+              </Button>
+              <Button 
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => verifyMutation.mutate(request.id)}
+                disabled={rejectMutation.isPending || verifyMutation.isPending || request.status !== 'pending'}
+              >
+                {verifyMutation.isPending ? 'Verifying...' : 'Verify & Publish'}
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>
